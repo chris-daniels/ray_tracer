@@ -1,10 +1,3 @@
-/*
-CSCI 480
-Assignment 3 Raytracer
-
-Name: <Your name here>
-*/
-
 #include <stdlib.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
@@ -60,6 +53,12 @@ typedef struct _Light
   double position[3];
   double color[3];
 } Light;
+
+typedef struct _Ray
+{
+  double position[3];
+  double direction[3];
+} Ray;
 
 Triangle triangles[MAX_TRIANGLES];
 Sphere spheres[MAX_SPHERES];
