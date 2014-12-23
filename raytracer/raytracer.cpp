@@ -100,7 +100,7 @@ void draw_scene()
 
 double *cast_ray(unsigned int x, unsigned int y)
 {
-  printf("cast_ray(%i,%i)\n",x,y);
+  printf("\ncast_ray(%i,%i)\n",x,y);
   double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
   double rayLength;
 
@@ -114,22 +114,17 @@ double *cast_ray(unsigned int x, unsigned int y)
   primary_ray.direction[1] = ((double)y - (HEIGHT/2.0)) * pixDirectionFactor;
   primary_ray.direction[2] = -1.0;
 
-  printf("***\n");
-  printf("rayLength = %f\n",rayLength);
-  printf("x: %f\n",primary_ray.direction[0]);
-  printf("y: %f\n",primary_ray.direction[1]);
-  printf("z: %f\n",primary_ray.direction[2]);
-  printf("***\n");
-
-  rayLength = sqrt(pow(primary_ray.direction[0], 2) + pow(primary_ray.direction[1], 2) + pow(primary_ray.direction[2], 2));
+  rayLength = (pow(primary_ray.direction[0], 2) + pow(primary_ray.direction[1], 2) + pow(primary_ray.direction[2], 2));
   
+  rayLength = sqrt(rayLength);
+
   primary_ray.direction[0] /= rayLength;
   primary_ray.direction[1] /= rayLength;
   primary_ray.direction[2] /= rayLength;
   
   if(check_spheres(primary_ray) > 0.0)
   {
-    plot_pixel(x,y,x%256,y%256,(x+y)%256);
+    plot_pixel(x,y,255,255,255);
   }
   return primary_ray.position;
 }
@@ -153,13 +148,24 @@ double check_spheres(Ray ray)
     
     if(discriminant >= 0)
     {
+      double solution1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
+      double solution2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
+      
+      //need logic to decide which solution
       return 1.0;
       printf("hit!\n");
     }
+    else if(discriminant == 0.0)
+    {
+      double solution = (-1.0 * b) / (2.0 * a);
+      //I think this should be fine?
+      return solution;
+    }
     else
-      return -1.0;
-    //double solution1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
-    //double solution2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
+    {
+     //return invalid value
+    return -1.0;
+    }
   }
 }
 
