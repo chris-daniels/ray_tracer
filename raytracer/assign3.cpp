@@ -4,6 +4,7 @@
 #include <GLUT/glut.h>
 #include <pic.h>
 #include <string.h>
+#include <cmath>
 
 #define MAX_TRIANGLES 2000
 #define MAX_SPHERES 10
@@ -73,6 +74,10 @@ void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned cha
 void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
+double *cast_ray(unsigned int x, unsigned int y);
+double check_spheres(Ray);
+double check_triangles(Ray);
+
 //MODIFY THIS FUNCTION
 void draw_scene()
 {
@@ -84,12 +89,64 @@ void draw_scene()
     glBegin(GL_POINTS);
     for(y=0;y < HEIGHT;y++)
     {
+      cast_ray(x,y);
       plot_pixel(x,y,x%256,y%256,(x+y)%256);
     }
     glEnd();
     glFlush();
   }
   printf("Done!\n"); fflush(stdout);
+}
+
+double *cast_ray(unsigned int x, unsigned int y)
+{
+  double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
+  double rayLength;
+
+  Ray primary_ray;
+
+  primary_ray.position[0] = 0.0;
+  primary_ray.position[1] = 0.0;
+  primary_ray.position[2] = 0.0;
+  
+  primary_ray.direction[0] = ((double)x - (WIDTH/2.0)) * pixDirectionFactor;
+  primary_ray.direction[1] = ((double)x - (WIDTH/2.0)) * pixDirectionFactor;
+  primary_ray.direction[2] = -1.0;
+
+  rayLength = sqrt(pow(primary_ray.direction[0], 2) + pow(primary_ray.direction[1], 2) + pow(primary_ray.direction[2], 2));
+  
+  primary_ray.direction[0] /= rayLength;
+  primary_ray.direction[1] /= rayLength;
+  primary_ray.direction[2] /= rayLength;
+  
+  return primary_ray.position;
+}
+
+double check_spheres(Ray ray)
+{
+  for(int i = 0; i < num_spheres; i++)
+  {
+    double a = (pow(ray.direction[0], 2) + pow(ray.direction[1], 2) + pow(ray.direction[2], 2));
+    
+    double b = 2.0 * ((ray.direction[0] * (ray.position[0] - spheres[i].position[0])) +
+                      (ray.direction[1] * (ray.position[1] - spheres[i].position[1])) +
+                      (ray.direction[2] * (ray.position[2] - spheres[i].position[2])));
+    
+    double c = pow((ray.position[0] - spheres[i].position[0]),2) +
+              pow((ray.position[1] - spheres[i].position[1]),2) +
+              pow((ray.position[2] - spheres[i].position[2]),2) -
+              pow(spheres[i].radius,2);
+  
+    double discriminant = pow(b,2) - (4 * a * c);
+    
+    double solution1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
+    double solution2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
+  }
+}
+
+double check_triangles(Ray ray)
+{
+  
 }
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
