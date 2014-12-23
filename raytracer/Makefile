@@ -1,8 +1,7 @@
 # Makefile 
-# CSCI 480
-# Assignment 3
+#Raytracer Project
 
-# we assume the pic directory locates one level above,
+# assume the pic directory locates one level above,
 # change PIC_PATH if this is not the case
 PIC_PATH = $(abspath $(CURDIR)/../pic)
 

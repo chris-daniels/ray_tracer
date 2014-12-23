@@ -21,8 +21,8 @@ int mode=MODE_DISPLAY;
 #define WIDTH 640
 #define HEIGHT 480
 
-//the field of view of the camera
-#define fov 60.0
+//the field of view of the camera in radians
+#define fov 1.0471975512
 
 unsigned char buffer[HEIGHT][WIDTH][3];
 
@@ -90,7 +90,7 @@ void draw_scene()
     for(y=0;y < HEIGHT;y++)
     {
       cast_ray(x,y);
-      plot_pixel(x,y,x%256,y%256,(x+y)%256);
+      //plot_pixel(x,y,x%256,y%256,(x+y)%256);
     }
     glEnd();
     glFlush();
@@ -100,6 +100,7 @@ void draw_scene()
 
 double *cast_ray(unsigned int x, unsigned int y)
 {
+  printf("cast_ray(%i,%i)\n",x,y);
   double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
   double rayLength;
 
@@ -110,8 +111,15 @@ double *cast_ray(unsigned int x, unsigned int y)
   primary_ray.position[2] = 0.0;
   
   primary_ray.direction[0] = ((double)x - (WIDTH/2.0)) * pixDirectionFactor;
-  primary_ray.direction[1] = ((double)x - (WIDTH/2.0)) * pixDirectionFactor;
+  primary_ray.direction[1] = ((double)y - (HEIGHT/2.0)) * pixDirectionFactor;
   primary_ray.direction[2] = -1.0;
+
+  printf("***\n");
+  printf("rayLength = %f\n",rayLength);
+  printf("x: %f\n",primary_ray.direction[0]);
+  printf("y: %f\n",primary_ray.direction[1]);
+  printf("z: %f\n",primary_ray.direction[2]);
+  printf("***\n");
 
   rayLength = sqrt(pow(primary_ray.direction[0], 2) + pow(primary_ray.direction[1], 2) + pow(primary_ray.direction[2], 2));
   
@@ -119,6 +127,10 @@ double *cast_ray(unsigned int x, unsigned int y)
   primary_ray.direction[1] /= rayLength;
   primary_ray.direction[2] /= rayLength;
   
+  if(check_spheres(primary_ray) > 0.0)
+  {
+    plot_pixel(x,y,x%256,y%256,(x+y)%256);
+  }
   return primary_ray.position;
 }
 
@@ -139,8 +151,15 @@ double check_spheres(Ray ray)
   
     double discriminant = pow(b,2) - (4 * a * c);
     
-    double solution1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
-    double solution2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
+    if(discriminant >= 0)
+    {
+      return 1.0;
+      printf("hit!\n");
+    }
+    else
+      return -1.0;
+    //double solution1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
+    //double solution2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
   }
 }
 
