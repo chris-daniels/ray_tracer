@@ -13,9 +13,9 @@ LIBRARIES = -L$(PIC_PATH) -framework OpenGL -framework GLUT -lpicio $(PIC_PATH)/
 COMPILER = g++
 COMPILERFLAGS = -O3 $(INCLUDE)
 
-PROGRAM = assign3
-SOURCE = assign3.cpp
-OBJECT = assign3.o
+PROGRAM = raytracer
+SOURCE = raytracer.cpp
+OBJECT = raytracer.o
 
 .cpp.o: 
 	$(COMPILER) -c $(COMPILERFLAGS) $<
