@@ -126,11 +126,19 @@ double *cast_ray(unsigned int x, unsigned int y)
   {
     plot_pixel(x,y,255,255,255);
   }
+  
+  if(check_triangles(primary_ray) > 0.0)
+  {
+    printf("wahoo..");
+  }
+  
   return primary_ray.position;
 }
 
 double check_spheres(Ray ray)
 {
+  double solution = -1.0;
+  
   for(int i = 0; i < num_spheres; i++)
   {
     double a = (pow(ray.direction[0], 2) + pow(ray.direction[1], 2) + pow(ray.direction[2], 2));
@@ -148,17 +156,27 @@ double check_spheres(Ray ray)
     
     if(discriminant >= 0)
     {
-      double solution1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
-      double solution2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
+      double zero1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
+      double zero2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
       
-      //need logic to decide which solution
-      return 1.0;
-      printf("hit!\n");
+      printf("solution 1 = %f\n",zero1);
+      printf("solution 2 = %f\n",zero2);
+      
+      if(zero1 < zero2)
+      {
+        solution = zero1;
+      }
+      else
+      {
+        solution = zero2;
+      }
+      
+      return solution;
     }
     else if(discriminant == 0.0)
     {
-      double solution = (-1.0 * b) / (2.0 * a);
-      //I think this should be fine?
+      solution = (-1.0 * b) / (2.0 * a);
+
       return solution;
     }
     else
@@ -171,7 +189,30 @@ double check_spheres(Ray ray)
 
 double check_triangles(Ray ray)
 {
+  double planeNormal[3];
   
+  double u[3];
+  double v[3];
+  double w[3];
+  
+  for(int i = 0; i< num_triangles; i++)
+  {
+    //calculate edges of triangle
+    //edge 1
+    u[0] = triangles[i].v[1].position[0] - triangles[i].v[0].position[0];
+    u[1] = triangles[i].v[1].position[1] - triangles[i].v[0].position[1];
+    u[2] = triangles[i].v[1].position[2] - triangles[i].v[0].position[2];
+    //edge 2
+    v[0] = triangles[i].v[2].position[0] - triangles[i].v[0].position[0];
+    v[1] = triangles[i].v[2].position[1] - triangles[i].v[0].position[1];
+    v[2] = triangles[i].v[2].position[2] - triangles[i].v[0].position[2];
+    
+    //find normal vector
+    planeNormal[0] = (u[1] * v[2]) - (u[2] * v[1]);
+    planeNormal[1] = (u[2] * v[0]) - (u[0] * v[2]);
+    planeNormal[2] = (u[0] * v[1]) - (u[1] * v[0]);
+  }
+  return -1.0;
 }
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
