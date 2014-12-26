@@ -100,7 +100,7 @@ void draw_scene()
 
 double *cast_ray(unsigned int x, unsigned int y)
 {
-  printf("\ncast_ray(%i,%i)\n",x,y);
+  //printf("\ncast_ray(%i,%i)\n",x,y);
   double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
   double rayLength;
 
@@ -129,7 +129,7 @@ double *cast_ray(unsigned int x, unsigned int y)
   
   if(check_triangles(primary_ray) > 0.0)
   {
-    printf("wahoo..");
+    plot_pixel(x,y,255,255,255);
   }
   
   return primary_ray.position;
@@ -158,9 +158,6 @@ double check_spheres(Ray ray)
     {
       double zero1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
       double zero2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
-      
-      printf("solution 1 = %f\n",zero1);
-      printf("solution 2 = %f\n",zero2);
       
       if(zero1 < zero2)
       {
@@ -195,6 +192,8 @@ double check_triangles(Ray ray)
   double v[3];
   double w[3];
   
+  double intersectionPoint[3];
+  
   for(int i = 0; i< num_triangles; i++)
   {
     //calculate edges of triangle
@@ -211,6 +210,42 @@ double check_triangles(Ray ray)
     planeNormal[0] = (u[1] * v[2]) - (u[2] * v[1]);
     planeNormal[1] = (u[2] * v[0]) - (u[0] * v[2]);
     planeNormal[2] = (u[0] * v[1]) - (u[1] * v[0]);
+    
+    //normalize it
+    double vectorLength = (pow(planeNormal[0],2) + pow(planeNormal[1],2) + pow(planeNormal[2],2));
+    vectorLength = sqrt(vectorLength);
+    
+    double intersectionDenominator =((ray.direction[0] * planeNormal[0]) + (ray.direction[1] * planeNormal[1]) + (ray.direction[2] * planeNormal[2]));
+    
+    if(intersectionDenominator < -0.0005 || intersectionDenominator > 0.0005)
+    {
+      double intersectionTime = ((triangles[i].v[0].position[0] - ray.position[0]) * planeNormal[0]) + ((triangles[i].v[0].position[1] - ray.position[1]) * planeNormal[1]) + ((triangles[i].v[0].position[2] - ray.position[2]) * planeNormal[2]);
+      intersectionTime /= intersectionDenominator;
+      
+      intersectionPoint[0] = ray.position[0] + (intersectionTime * ray.direction[0]);
+      intersectionPoint[1] = ray.position[1] + (intersectionTime * ray.direction[1]);
+      intersectionPoint[2] = ray.position[2] + (intersectionTime * ray.direction[2]);
+      
+      //now check if it's in the triangle
+      w[0] = intersectionPoint[0] - triangles[i].v[0].position[0];
+      w[1] = intersectionPoint[1] - triangles[i].v[0].position[1];
+      w[2] = intersectionPoint[2] - triangles[i].v[0].position[2];
+      
+      double uv = (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2]);
+      double uself = pow(u[0],2) + pow(u[1],2) + pow(u[2],2);
+      double vself = pow(v[0],2) + pow(v[1],2) + pow(v[2],2);
+      double uw = (u[0] * w[0]) + (u[1] * w[1]) + (u[2] * w[2]);
+      double vw = (v[0] * w[0]) + (v[1] * w[1]) + (v[2] * w[2]);
+      
+      double s = ((uv * vw) - (vself * uw)) / (pow(uv,2) - (uself * vself));
+      double t = ((uv * uw) - (uself * vw)) / (pow(uv,2) - (uself * vself));
+      
+      if(s > 0.0005 && t > 0.0005 && (s + t) <= 1.000)
+      {
+        return 1.0;
+      }
+    }
+      
   }
   return -1.0;
 }
