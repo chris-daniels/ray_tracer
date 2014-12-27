@@ -81,8 +81,8 @@ void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
 double *cast_ray(unsigned int x, unsigned int y);
-double check_spheres(Ray);
-double check_triangles(Ray);
+Intersection check_spheres(Ray);
+Intersection check_triangles(Ray);
 bool lookForShadow(double *);
 
 //MODIFY THIS FUNCTION
@@ -107,7 +107,9 @@ void draw_scene()
 
 double *cast_ray(unsigned int x, unsigned int y)
 {
-  //printf("\ncast_ray(%i,%i)\n",x,y);
+  Intersection triIntersection;
+  Intersection sphereIntersection;
+  
   double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
   double rayLength;
   
@@ -129,12 +131,14 @@ double *cast_ray(unsigned int x, unsigned int y)
   primary_ray.direction[1] /= rayLength;
   primary_ray.direction[2] /= rayLength;
   
-  if(check_spheres(primary_ray) > 0.0)
+  triIntersection = check_triangles(primary_ray);
+  sphereIntersection = check_spheres(primary_ray);
+  
+  if((triIntersection.time < sphereIntersection.time || sphereIntersection.time < 0) && triIntersection.time >= 0)
   {
     plot_pixel(x,y,255,255,255);
   }
-  
-  if(check_triangles(primary_ray) > 0.0)
+  if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
   {
     plot_pixel(x,y,255,255,255);
   }
@@ -142,12 +146,16 @@ double *cast_ray(unsigned int x, unsigned int y)
   return primary_ray.position;
 }
 
-double check_spheres(Ray ray)
+Intersection check_spheres(Ray ray)
 {
-  double solution = -1.0;
+  //Intersection to be returned by value.  Initialize time to -1
+  Intersection closestHit;
+  closestHit.time = -1.0;
   
+  //iterate through spheres
   for(int i = 0; i < num_spheres; i++)
   {
+    //variables used to find intersection time value via quadratic function
     double a = (pow(ray.direction[0], 2) + pow(ray.direction[1], 2) + pow(ray.direction[2], 2));
     
     double b = 2.0 * ((ray.direction[0] * (ray.position[0] - spheres[i].position[0])) +
@@ -159,40 +167,45 @@ double check_spheres(Ray ray)
               pow((ray.position[2] - spheres[i].position[2]),2) -
               pow(spheres[i].radius,2);
   
+    //quadratic formula
     double discriminant = pow(b,2) - (4 * a * c);
-    
     if(discriminant >= 0)
     {
+      //calculate and compare both solutions
       double zero1 = ((-1.0 * b) + sqrt(discriminant)) / (2.0 * a);
       double zero2 = ((-1.0 * b) - sqrt(discriminant)) / (2.0 * a);
-      
-      if(zero1 < zero2)
+
+      if(zero1 < zero2 && zero1 > 0 && (zero1 < closestHit.time || closestHit.time == -1.0))
       {
-        solution = zero1;
+        closestHit.time = zero1;
       }
-      else
+      else if(zero2 < zero1 && zero2 >0 && (zero1 < closestHit.time || closestHit.time == -1.0))
       {
-        solution = zero2;
+        closestHit.time = zero2;
       }
-      
-      return solution;
     }
     else if(discriminant == 0.0)
     {
-      solution = (-1.0 * b) / (2.0 * a);
-
-      return solution;
-    }
-    else
-    {
-     //return invalid value
-    return -1.0;
+      double zero = (-1.0 * b) / (2.0 * a);
+      if((zero < closestHit.time || closestHit.time == -1.0) && zero >= 0)
+      {
+        closestHit.time = zero;
+      }
     }
   }
+  
+  closestHit.position[0] = ray.position[0] + (closestHit.time * ray.direction[0]);
+  closestHit.position[1] = ray.position[1] + (closestHit.time * ray.direction[1]);
+  closestHit.position[2] = ray.position[2] + (closestHit.time * ray.direction[2]);
+
+  return closestHit;
 }
 
-double check_triangles(Ray ray)
+Intersection check_triangles(Ray ray)
 {
+  Intersection closestHit;
+  closestHit.time = -1.0;
+  
   double planeNormal[3];
   
   double u[3];
@@ -249,12 +262,12 @@ double check_triangles(Ray ray)
       
       if(s > 0.0005 && t > 0.0005 && (s + t) <= 1.000)
       {
-        return 1.0;
+        closestHit;
       }
     }
       
   }
-  return -1.0;
+  return closestHit;
 }
 
 bool lookForShadow(double *intersectionPoint)
@@ -273,10 +286,6 @@ bool lookForShadow(double *intersectionPoint)
     ray.direction[1] = lights[i].position[1] - intersectionPoint[1];
     ray.direction[2] = lights[i].position[2] - intersectionPoint[2];
     
-    if(check_spheres(ray) >= 0 || check_triangles(ray) >= 0)
-    {
-      hitObject = true;
-    }
   }
 }
 
