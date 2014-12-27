@@ -61,6 +61,12 @@ typedef struct _Ray
   double direction[3];
 } Ray;
 
+typedef struct _Intersection
+{
+  double time;
+  double position[3];
+} Intersection;
+
 Triangle triangles[MAX_TRIANGLES];
 Sphere spheres[MAX_SPHERES];
 Light lights[MAX_LIGHTS];
@@ -77,6 +83,7 @@ void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 double *cast_ray(unsigned int x, unsigned int y);
 double check_spheres(Ray);
 double check_triangles(Ray);
+bool lookForShadow(double *);
 
 //MODIFY THIS FUNCTION
 void draw_scene()
@@ -103,7 +110,7 @@ double *cast_ray(unsigned int x, unsigned int y)
   //printf("\ncast_ray(%i,%i)\n",x,y);
   double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
   double rayLength;
-
+  
   Ray primary_ray;
 
   primary_ray.position[0] = 0.0;
@@ -248,6 +255,29 @@ double check_triangles(Ray ray)
       
   }
   return -1.0;
+}
+
+bool lookForShadow(double *intersectionPoint)
+{
+  bool hitObject = false;
+  
+  for(int i = 0; i < num_lights; i ++)
+  {
+    Ray ray;
+    
+    ray.position[0] = intersectionPoint[0];
+    ray.position[1] = intersectionPoint[1];
+    ray.position[2] = intersectionPoint[2];
+    
+    ray.direction[0] = lights[i].position[0] - intersectionPoint[0];
+    ray.direction[1] = lights[i].position[1] - intersectionPoint[1];
+    ray.direction[2] = lights[i].position[2] - intersectionPoint[2];
+    
+    if(check_spheres(ray) >= 0 || check_triangles(ray) >= 0)
+    {
+      hitObject = true;
+    }
+  }
 }
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
