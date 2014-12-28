@@ -82,7 +82,7 @@ void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned cha
 void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
-double getPixelColor(unsigned int, unsigned int, Color);
+double getLightCoefficient(unsigned int, unsigned int);
 Ray cast_ray(unsigned int x, unsigned int y);
 Intersection check_spheres(Ray);
 Intersection check_triangles(Ray);
@@ -101,7 +101,7 @@ void draw_scene()
     for(y=0;y < HEIGHT;y++)
     {
       
-      getPixelColor(x,y,GREEN);
+      getLightCoefficient(x,y);
       //plot_pixel(x,y,x%256,y%256,(x+y)%256);
     }
     glEnd();
@@ -110,20 +110,25 @@ void draw_scene()
   printf("Done!\n"); fflush(stdout);
 }
 
-double getPixelColor(unsigned int x, unsigned int y, Color c)
+double getLightCoefficient(unsigned int x, unsigned int y)
 {
   Intersection triIntersection;
   Intersection sphereIntersection;
   
+  //create primary array
   Ray primary_ray = cast_ray(x, y);
   
+  //check for intersections with triangles and spheres, getting intersection information
   triIntersection = check_triangles(primary_ray);
   sphereIntersection = check_spheres(primary_ray);
   
+  //if we hit a triangle first
   if((triIntersection.time < sphereIntersection.time || sphereIntersection.time < 0) && triIntersection.time >= 0)
   {
     plot_pixel(x,y,255,255,255);
   }
+  
+  //if we hit a sphere first
   if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
   {
     calcLighting(x,y,sphereIntersection);
@@ -137,18 +142,19 @@ Ray cast_ray(unsigned int x, unsigned int y)
   double rayLength;
   Ray primary_ray;
 
-  //set primary ray, from origin
+  //set ray, from origin
   primary_ray.position[0] = 0.0;
   primary_ray.position[1] = 0.0;
   primary_ray.position[2] = 0.0;
+  
   //direct ray to pixel position on screen
   primary_ray.direction[0] = ((double)x - (WIDTH/2.0)) * pixDirectionFactor;
   primary_ray.direction[1] = ((double)y - (HEIGHT/2.0)) * pixDirectionFactor;
   primary_ray.direction[2] = -1.0;
+  
   //normalize it
   rayLength = (pow(primary_ray.direction[0], 2) + pow(primary_ray.direction[1], 2) + pow(primary_ray.direction[2], 2));
   rayLength = sqrt(rayLength);
-  
   primary_ray.direction[0] /= rayLength;
   primary_ray.direction[1] /= rayLength;
   primary_ray.direction[2] /= rayLength;
@@ -283,12 +289,18 @@ Intersection check_triangles(Ray ray)
 double calcLighting(unsigned int x, unsigned int y, Intersection intersection)
 {
   
+  
 }
 
 bool lookForShadow(double *intersectionPoint)
 {
   bool hitObject = false;
+  Intersection triIntersection;
+  Intersection sphereIntersection;
   
+  triIntersection.time = -1.0;
+  sphereIntersection.time = -1.0;
+  //iterate through lights, checking for intersection
   for(int i = 0; i < num_lights; i ++)
   {
     Ray ray;
@@ -301,7 +313,15 @@ bool lookForShadow(double *intersectionPoint)
     ray.direction[1] = lights[i].position[1] - intersectionPoint[1];
     ray.direction[2] = lights[i].position[2] - intersectionPoint[2];
     
+    triIntersection = check_triangles(ray);
+    sphereIntersection = check_spheres(ray);
+    
+    if(triIntersection.time > 0 || sphereIntersection.time > 0)
+    {
+      hitObject = true;
+    }
   }
+  return hitObject;
 }
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
