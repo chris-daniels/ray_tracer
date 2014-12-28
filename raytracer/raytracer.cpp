@@ -133,7 +133,9 @@ double getLightCoefficient(unsigned int x, unsigned int y)
   //if we hit a sphere first
   if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
   {
-    plot_pixel(x,y,255,255,255);
+    double diffuseLight = calcDiffuse(primary_ray, sphereIntersection);
+    printf("diffuse light: %f\n",diffuseLight);
+    plot_pixel(x,y,255*diffuseLight,255*diffuseLight,255*diffuseLight);
   }
 }
 
@@ -168,6 +170,7 @@ Intersection check_spheres(Ray ray)
   //Intersection to be returned by value.  Initialize time to -1
   Intersection closestHit;
   closestHit.time = -1.0;
+  closestHit.sphere = NULL;
   
   //iterate through spheres
   for(int i = 0; i < num_spheres; i++)
@@ -195,10 +198,12 @@ Intersection check_spheres(Ray ray)
       if(zero1 < zero2 && zero1 > 0 && (zero1 < closestHit.time || closestHit.time == -1.0))
       {
         closestHit.time = zero1;
+        closestHit.sphere = &spheres[i];
       }
       else if(zero2 < zero1 && zero2 >0 && (zero1 < closestHit.time || closestHit.time == -1.0))
       {
         closestHit.time = zero2;
+        closestHit.sphere = &spheres[i];
       }
     }
     else if(discriminant == 0.0)
@@ -207,6 +212,7 @@ Intersection check_spheres(Ray ray)
       if((zero < closestHit.time || closestHit.time == -1.0) && zero >= 0)
       {
         closestHit.time = zero;
+        closestHit.sphere = &spheres[i];
       }
     }
   }
@@ -222,6 +228,7 @@ Intersection check_triangles(Ray ray)
 {
   Intersection closestHit;
   closestHit.time = -1.0;
+  closestHit.triangle = NULL;
   
   double planeNormal[3];
   
@@ -289,6 +296,7 @@ Intersection check_triangles(Ray ray)
 
 double calcDiffuse(Ray ray, Intersection intersection)
 {
+  printf("\ncalcDiffuse()\n");
   double normal[3] = {0,0,0};
   double normalLength;
   double vectorToLight[3];
@@ -328,8 +336,12 @@ double calcDiffuse(Ray ray, Intersection intersection)
     vectorToLight[2] = lights[i].position[2] - intersection.position[2];
     vectorToLightLength = pow(vectorToLight[0],2) + pow(vectorToLight[1],2) + pow(vectorToLight[2],2);
     vectorToLightLength = sqrt(vectorToLightLength);
-      
+    vectorToLight[0] /= vectorToLightLength;
+    vectorToLight[1] /= vectorToLightLength;
+    vectorToLight[2] /= vectorToLightLength;
+
     lightFactor += (normal[0] * vectorToLight[0]) + (normal[1] * vectorToLight[1]) + (normal[2] * vectorToLight[2]);
+    printf("lightfactor: %f\n",lightFactor);
   }
   return lightFactor;
 }
