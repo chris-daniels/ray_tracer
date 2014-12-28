@@ -90,6 +90,7 @@ Intersection check_spheres(Ray);
 Intersection check_triangles(Ray);
 bool lookForShadow(double *);
 double calcDiffuse(Ray, Intersection);
+double calcTriangleColor(Intersection);
 
 //draws scene
 void draw_scene()
@@ -127,6 +128,7 @@ double getLightCoefficient(unsigned int x, unsigned int y)
   //if we hit a triangle first
   if((triIntersection.time < sphereIntersection.time || sphereIntersection.time < 0) && triIntersection.time >= 0)
   {
+    printf("yo!");
     plot_pixel(x,y,255,255,255);
   }
   
@@ -134,7 +136,7 @@ double getLightCoefficient(unsigned int x, unsigned int y)
   if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
   {
     double diffuseLight = calcDiffuse(primary_ray, sphereIntersection);
-    printf("diffuse light: %f\n",diffuseLight);
+
     plot_pixel(x,y,255*diffuseLight,255*diffuseLight,255*diffuseLight);
   }
 }
@@ -286,7 +288,10 @@ Intersection check_triangles(Ray ray)
       
       if(s > 0.0005 && t > 0.0005 && (s + t) <= 1.000)
       {
-        closestHit;
+        closestHit.time = intersectionTime;
+        closestHit.position[0] = intersectionPoint[0];
+        closestHit.position[1] = intersectionPoint[1];
+        closestHit.position[2] = intersectionPoint[2];
       }
     }
       
@@ -296,7 +301,6 @@ Intersection check_triangles(Ray ray)
 
 double calcDiffuse(Ray ray, Intersection intersection)
 {
-  printf("\ncalcDiffuse()\n");
   double normal[3] = {0,0,0};
   double normalLength;
   double vectorToLight[3];
@@ -341,7 +345,6 @@ double calcDiffuse(Ray ray, Intersection intersection)
     vectorToLight[2] /= vectorToLightLength;
 
     lightFactor += (normal[0] * vectorToLight[0]) + (normal[1] * vectorToLight[1]) + (normal[2] * vectorToLight[2]);
-    printf("lightfactor: %f\n",lightFactor);
   }
   return lightFactor;
 }
@@ -376,6 +379,11 @@ bool lookForShadow(double *intersectionPoint)
     }
   }
   return hitObject;
+}
+
+double calcTriangleColor(Intersection intersection)
+{
+  
 }
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
