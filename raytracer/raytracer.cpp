@@ -67,6 +67,8 @@ typedef struct _Intersection
 {
   double time;
   double position[3];
+  Triangle *triangle;
+  Sphere *sphere;
 } Intersection;
 
 Triangle triangles[MAX_TRIANGLES];
@@ -87,7 +89,7 @@ Ray cast_ray(unsigned int x, unsigned int y);
 Intersection check_spheres(Ray);
 Intersection check_triangles(Ray);
 bool lookForShadow(double *);
-double calcLighting(unsigned int, unsigned int, Intersection);
+double calcDiffuse(Ray, Intersection);
 
 //draws scene
 void draw_scene()
@@ -131,7 +133,6 @@ double getLightCoefficient(unsigned int x, unsigned int y)
   //if we hit a sphere first
   if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
   {
-    calcLighting(x,y,sphereIntersection);
     plot_pixel(x,y,255,255,255);
   }
 }
@@ -286,10 +287,51 @@ Intersection check_triangles(Ray ray)
   return closestHit;
 }
 
-double calcLighting(unsigned int x, unsigned int y, Intersection intersection)
+double calcDiffuse(Ray ray, Intersection intersection)
 {
+  double normal[3] = {0,0,0};
+  double normalLength;
+  double vectorToLight[3];
+  double vectorToLightLength;
+  double lightFactor = 0;
   
-  
+  if(intersection.sphere != NULL)
+  {
+    normal[0] = (intersection.position[0] - intersection.sphere->position[0]) / intersection.sphere->radius;
+    normal[1] = (intersection.position[1] - intersection.sphere->position[1]) / intersection.sphere->radius;
+    normal[2] = (intersection.position[2] - intersection.sphere->position[2]) / intersection.sphere->radius;
+  }
+  else if (intersection.triangle != NULL)
+  {
+    double u[3];
+    double v[3];
+      
+    //calculate edges of the triangle
+    u[0] = intersection.triangle->v[1].position[0] - intersection.triangle->v[0].position[0];
+    u[0] = intersection.triangle->v[1].position[1] - intersection.triangle->v[0].position[1];
+    u[0] = intersection.triangle->v[1].position[2] - intersection.triangle->v[0].position[2];
+      
+    v[0] = intersection.triangle->v[2].position[0] - intersection.triangle->v[0].position[0];
+    v[0] = intersection.triangle->v[2].position[1] - intersection.triangle->v[0].position[1];
+    v[0] = intersection.triangle->v[2].position[2] - intersection.triangle->v[0].position[2];
+      
+    normal[0] = (u[1] * v[2]) - (u[2] * v[1]);
+    normal[1] = (u[2] * v[0]) - (u[0] * v[2]);
+    normal[2] = (u[0] * v[1]) - (u[1] * v[0]);
+    normalLength = pow(normal[0],2) + pow(normal[1],2) + pow(normal[2],2);
+      normalLength = sqrt(normalLength);
+  }
+  for(int i = 0; i < num_lights; i++)
+  {
+    vectorToLight[0] = lights[i].position[0] - intersection.position[0];
+    vectorToLight[1] = lights[i].position[1] - intersection.position[1];
+    vectorToLight[2] = lights[i].position[2] - intersection.position[2];
+    vectorToLightLength = pow(vectorToLight[0],2) + pow(vectorToLight[1],2) + pow(vectorToLight[2],2);
+    vectorToLightLength = sqrt(vectorToLightLength);
+      
+    lightFactor += (normal[0] * vectorToLight[0]) + (normal[1] * vectorToLight[1]) + (normal[2] * vectorToLight[2]);
+  }
+  return lightFactor;
 }
 
 bool lookForShadow(double *intersectionPoint)
