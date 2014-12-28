@@ -24,6 +24,8 @@ int mode=MODE_DISPLAY;
 //the field of view of the camera in radians
 #define fov 1.0471975512
 
+enum Color {RED, GREEN, BLUE};
+
 unsigned char buffer[HEIGHT][WIDTH][3];
 
 struct Vertex
@@ -80,12 +82,14 @@ void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned cha
 void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
-double *cast_ray(unsigned int x, unsigned int y);
+double getPixelColor(unsigned int, unsigned int, Color);
+Ray cast_ray(unsigned int x, unsigned int y);
 Intersection check_spheres(Ray);
 Intersection check_triangles(Ray);
 bool lookForShadow(double *);
+double calcLighting(unsigned int, unsigned int, Intersection);
 
-//MODIFY THIS FUNCTION
+//draws scene
 void draw_scene()
 {
   unsigned int x,y;
@@ -96,7 +100,8 @@ void draw_scene()
     glBegin(GL_POINTS);
     for(y=0;y < HEIGHT;y++)
     {
-      cast_ray(x,y);
+      
+      getPixelColor(x,y,GREEN);
       //plot_pixel(x,y,x%256,y%256,(x+y)%256);
     }
     glEnd();
@@ -105,31 +110,12 @@ void draw_scene()
   printf("Done!\n"); fflush(stdout);
 }
 
-double *cast_ray(unsigned int x, unsigned int y)
+double getPixelColor(unsigned int x, unsigned int y, Color c)
 {
   Intersection triIntersection;
   Intersection sphereIntersection;
   
-  double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
-  double rayLength;
-  
-  Ray primary_ray;
-
-  primary_ray.position[0] = 0.0;
-  primary_ray.position[1] = 0.0;
-  primary_ray.position[2] = 0.0;
-  
-  primary_ray.direction[0] = ((double)x - (WIDTH/2.0)) * pixDirectionFactor;
-  primary_ray.direction[1] = ((double)y - (HEIGHT/2.0)) * pixDirectionFactor;
-  primary_ray.direction[2] = -1.0;
-
-  rayLength = (pow(primary_ray.direction[0], 2) + pow(primary_ray.direction[1], 2) + pow(primary_ray.direction[2], 2));
-  
-  rayLength = sqrt(rayLength);
-
-  primary_ray.direction[0] /= rayLength;
-  primary_ray.direction[1] /= rayLength;
-  primary_ray.direction[2] /= rayLength;
+  Ray primary_ray = cast_ray(x, y);
   
   triIntersection = check_triangles(primary_ray);
   sphereIntersection = check_spheres(primary_ray);
@@ -140,10 +126,34 @@ double *cast_ray(unsigned int x, unsigned int y)
   }
   if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
   {
+    calcLighting(x,y,sphereIntersection);
     plot_pixel(x,y,255,255,255);
   }
+}
+
+Ray cast_ray(unsigned int x, unsigned int y)
+{
+  double pixDirectionFactor = std::abs(2 * std::tan(fov/2.0) / HEIGHT);
+  double rayLength;
+  Ray primary_ray;
+
+  //set primary ray, from origin
+  primary_ray.position[0] = 0.0;
+  primary_ray.position[1] = 0.0;
+  primary_ray.position[2] = 0.0;
+  //direct ray to pixel position on screen
+  primary_ray.direction[0] = ((double)x - (WIDTH/2.0)) * pixDirectionFactor;
+  primary_ray.direction[1] = ((double)y - (HEIGHT/2.0)) * pixDirectionFactor;
+  primary_ray.direction[2] = -1.0;
+  //normalize it
+  rayLength = (pow(primary_ray.direction[0], 2) + pow(primary_ray.direction[1], 2) + pow(primary_ray.direction[2], 2));
+  rayLength = sqrt(rayLength);
   
-  return primary_ray.position;
+  primary_ray.direction[0] /= rayLength;
+  primary_ray.direction[1] /= rayLength;
+  primary_ray.direction[2] /= rayLength;
+  
+  return primary_ray;
 }
 
 Intersection check_spheres(Ray ray)
@@ -268,6 +278,11 @@ Intersection check_triangles(Ray ray)
       
   }
   return closestHit;
+}
+
+double calcLighting(unsigned int x, unsigned int y, Intersection intersection)
+{
+  
 }
 
 bool lookForShadow(double *intersectionPoint)
