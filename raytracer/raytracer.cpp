@@ -148,7 +148,7 @@ double getLightCoefficient(unsigned int x, unsigned int y)
   }
   
   //if we hit a sphere first
-  if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
+  else if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0) && sphereIntersection.time >= 0)
   {
     double diffuseLight = calcDiffuse(primary_ray, sphereIntersection);
     double red = getSphereColor(sphereIntersection, 0);
@@ -288,6 +288,9 @@ Intersection check_triangles(Ray ray)
     //normalize it
     double vectorLength = (pow(planeNormal[0],2) + pow(planeNormal[1],2) + pow(planeNormal[2],2));
     vectorLength = sqrt(vectorLength);
+    planeNormal[0] /= vectorLength;
+    planeNormal[1] /= vectorLength;
+    planeNormal[2] /= vectorLength;
     
     double intersectionDenominator =((ray.direction[0] * planeNormal[0]) + (ray.direction[1] * planeNormal[1]) + (ray.direction[2] * planeNormal[2]));
     
@@ -365,6 +368,9 @@ double calcDiffuse(Ray ray, Intersection intersection)
     normal[2] = (u[0] * v[1]) - (u[1] * v[0]);
     normalLength = pow(normal[0],2) + pow(normal[1],2) + pow(normal[2],2);
     normalLength = sqrt(normalLength);
+    normal[0] /= normalLength;
+    normal[1] /= normalLength;
+    normal[2] /= normalLength;
   }
   for(int i = 0; i < num_lights; i++)
   {
