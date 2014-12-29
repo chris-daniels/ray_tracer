@@ -90,7 +90,9 @@ Intersection check_spheres(Ray);
 Intersection check_triangles(Ray);
 bool lookForShadow(double *);
 double calcDiffuse(Ray, Intersection);
-double calcTriangleColor(Intersection);
+double calcTriangleColor(Intersection, int);
+double getSphereColor(Intersection,int);
+
 
 //draws scene
 void draw_scene()
@@ -128,16 +130,40 @@ double getLightCoefficient(unsigned int x, unsigned int y)
   //if we hit a triangle first
   if((triIntersection.time < sphereIntersection.time || sphereIntersection.time < 0) && triIntersection.time >= 0)
   {
-    printf("yo!");
-    plot_pixel(x,y,255,255,255);
+    double diffuseLight = calcDiffuse(primary_ray, triIntersection);
+    double red = calcTriangleColor(triIntersection, 0);
+    double green = calcTriangleColor(triIntersection, 1);
+    double blue = calcTriangleColor(triIntersection, 2);
+    
+    red *= (0.7 * diffuseLight + 0.3);
+    green *= (0.7 * diffuseLight + 0.3);
+    blue *= (0.7 * diffuseLight + 0.3);
+
+    red *= 255;
+    green *= 255;
+    blue *= 255;
+    
+    printf("PIXEL: (%f,%f,%f)\n",red,green,blue);
+    plot_pixel(x,y,red,green,blue);
   }
   
   //if we hit a sphere first
   if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0)&& sphereIntersection.time >= 0)
   {
     double diffuseLight = calcDiffuse(primary_ray, sphereIntersection);
-
-    plot_pixel(x,y,255*diffuseLight,255*diffuseLight,255*diffuseLight);
+    double red = getSphereColor(sphereIntersection, 0);
+    double green = getSphereColor(sphereIntersection, 1);
+    double blue = getSphereColor(sphereIntersection, 2);
+    
+    red *= (0.7 * diffuseLight + 0.3);
+    green *= (0.7 * diffuseLight + 0.3);
+    blue *= (0.7 * diffuseLight + 0.3);
+                                 
+    red *= 255;
+    green *= 255;
+    blue *= 255;
+                                 
+    plot_pixel(x,y,red,green,blue);
   }
 }
 
@@ -173,6 +199,7 @@ Intersection check_spheres(Ray ray)
   Intersection closestHit;
   closestHit.time = -1.0;
   closestHit.sphere = NULL;
+  closestHit.triangle = NULL;
   
   //iterate through spheres
   for(int i = 0; i < num_spheres; i++)
@@ -231,6 +258,7 @@ Intersection check_triangles(Ray ray)
   Intersection closestHit;
   closestHit.time = -1.0;
   closestHit.triangle = NULL;
+  closestHit.sphere = NULL;
   
   double planeNormal[3];
   
@@ -288,10 +316,14 @@ Intersection check_triangles(Ray ray)
       
       if(s > 0.0005 && t > 0.0005 && (s + t) <= 1.000)
       {
-        closestHit.time = intersectionTime;
-        closestHit.position[0] = intersectionPoint[0];
-        closestHit.position[1] = intersectionPoint[1];
-        closestHit.position[2] = intersectionPoint[2];
+        if(intersectionTime > 0 && (intersectionTime < closestHit.time || closestHit.time == -1.0))
+        {
+          closestHit.time = intersectionTime;
+          closestHit.triangle = &triangles[i];
+          closestHit.position[0] = intersectionPoint[0];
+          closestHit.position[1] = intersectionPoint[1];
+          closestHit.position[2] = intersectionPoint[2];
+        }
       }
     }
       
@@ -315,23 +347,24 @@ double calcDiffuse(Ray ray, Intersection intersection)
   }
   else if (intersection.triangle != NULL)
   {
+    printf("\nfirst call: calculate triangle lighting\n");
     double u[3];
     double v[3];
       
     //calculate edges of the triangle
     u[0] = intersection.triangle->v[1].position[0] - intersection.triangle->v[0].position[0];
-    u[0] = intersection.triangle->v[1].position[1] - intersection.triangle->v[0].position[1];
-    u[0] = intersection.triangle->v[1].position[2] - intersection.triangle->v[0].position[2];
+    u[1] = intersection.triangle->v[1].position[1] - intersection.triangle->v[0].position[1];
+    u[2] = intersection.triangle->v[1].position[2] - intersection.triangle->v[0].position[2];
       
     v[0] = intersection.triangle->v[2].position[0] - intersection.triangle->v[0].position[0];
-    v[0] = intersection.triangle->v[2].position[1] - intersection.triangle->v[0].position[1];
-    v[0] = intersection.triangle->v[2].position[2] - intersection.triangle->v[0].position[2];
+    v[1] = intersection.triangle->v[2].position[1] - intersection.triangle->v[0].position[1];
+    v[2] = intersection.triangle->v[2].position[2] - intersection.triangle->v[0].position[2];
       
     normal[0] = (u[1] * v[2]) - (u[2] * v[1]);
     normal[1] = (u[2] * v[0]) - (u[0] * v[2]);
     normal[2] = (u[0] * v[1]) - (u[1] * v[0]);
     normalLength = pow(normal[0],2) + pow(normal[1],2) + pow(normal[2],2);
-      normalLength = sqrt(normalLength);
+    normalLength = sqrt(normalLength);
   }
   for(int i = 0; i < num_lights; i++)
   {
@@ -346,6 +379,7 @@ double calcDiffuse(Ray ray, Intersection intersection)
 
     lightFactor += (normal[0] * vectorToLight[0]) + (normal[1] * vectorToLight[1]) + (normal[2] * vectorToLight[2]);
   }
+  printf("lightfactor = %f\n",lightFactor);
   return lightFactor;
 }
 
@@ -381,9 +415,57 @@ bool lookForShadow(double *intersectionPoint)
   return hitObject;
 }
 
-double calcTriangleColor(Intersection intersection)
+double calcTriangleColor(Intersection intersection, int colorIndex)
 {
+  printf("calculatring triangle color...\n");
+  double d1[3];
+  double d2[3];
+  double d3[3];
   
+  double d1length;
+  double d2length;
+  double d3length;
+  
+  double d1Factor;
+  double d2Factor;
+  double d3Factor;
+  
+  double color;
+  
+  //calculate d1 length
+  d1[0] = intersection.position[0] - intersection.triangle->v[0].position[0];
+  d1[1] = intersection.position[1] - intersection.triangle->v[0].position[1];
+  d1[2] = intersection.position[2] - intersection.triangle->v[0].position[2];
+  d1length = pow(d1[0],2) + pow(d1[1],2) +  pow(d1[2],2);
+  d1length = sqrt(d1length);
+  
+  //calculate d2 length
+  d2[0] = intersection.position[0] - intersection.triangle->v[1].position[0];
+  d2[1] = intersection.position[1] - intersection.triangle->v[1].position[1];
+  d2[2] = intersection.position[2] - intersection.triangle->v[1].position[2];
+  d2length = pow(d2[0],2) + pow(d2[1],2) + pow(d2[2],2);
+  d2length = sqrt(d2length);
+  
+  //calculate d3 length
+  d3[0] = intersection.position[0] - intersection.triangle->v[2].position[0];
+  d3[1] = intersection.position[1] - intersection.triangle->v[2].position[1];
+  d3[2] = intersection.position[2] - intersection.triangle->v[2].position[2];
+  d3length = pow(d3[0],2) + pow(d3[1],2) + pow(d3[2],2);
+  d3length = sqrt(d3length);
+  
+  //calculate factors for coloring
+  d1Factor = d1length / (d1length + d2length + d3length);
+  d2Factor = d2length / (d1length + d2length + d3length);
+  d3Factor = d3length / (d1length + d2length + d3length);
+  printf("respective factors: (%f,%f,%f)\n",d1Factor,d2Factor,d3Factor);
+  color = (d1Factor * intersection.triangle->v[0].color_diffuse[colorIndex]) + (d2Factor * intersection.triangle->v[1].color_diffuse[colorIndex]) +  (d3Factor * intersection.triangle->v[2].color_diffuse[colorIndex]);
+  
+  return color;
+}
+
+double getSphereColor(Intersection intersection, int colorIndex)
+{
+  return intersection.sphere->color_diffuse[colorIndex];
 }
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
