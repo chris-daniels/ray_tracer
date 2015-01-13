@@ -12,23 +12,23 @@ COMPILING / RUNNING THE APPLICATION
 The input file scheme works with three types of objects: spheres and triangles.  The operate with the following formats:
 
 sphere
-  position (3 floats)
-  radius (1 float)
-  diffuse color (3 floats)
-  specular color (3 floats)
-  shininess (1 float)
+position (3 floats)
+radius (1 float)
+diffuse color (3 floats)
+specular color (3 floats)
+shininess (1 float)
 
 triangle
-  //the following, repeated three times (once for every vertex)
-  position (3 floats)
-  normal (3 floats)
-  diffuse color (3 floats)
-  specular color (3 floats)
-  shininess (1 float)
+//the following, repeated three times (once for every vertex)
+position (3 floats)
+normal (3 floats)
+diffuse color (3 floats)
+specular color (3 floats)
+shininess (1 float)
 
 light
-  position (3 floats)
-  color (3 floats)
+position (3 floats)
+color (3 floats)
 
 Also note the first line of every file is the total number of objects in the scene.  
 
