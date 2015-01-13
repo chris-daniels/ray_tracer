@@ -76,15 +76,15 @@ Sphere spheres[MAX_SPHERES];
 Light lights[MAX_LIGHTS];
 double ambient_light[3];
 
-int num_triangles=0;
-int num_spheres=0;
-int num_lights=0;
+int num_triangles = 0;
+int num_spheres = 0;
+int num_lights = 0;
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
-double getLightCoefficient(unsigned int, unsigned int);
+void colorPixel(unsigned int, unsigned int);
 Ray cast_ray(unsigned int x, unsigned int y);
 Intersection check_spheres(Ray);
 Intersection check_triangles(Ray);
@@ -99,15 +99,13 @@ void draw_scene()
 {
   unsigned int x,y;
   //simple output
-  for(x=0; x<WIDTH; x++)
+  for(x = 0; x < WIDTH; x++)
   {
     glPointSize(2.0);  
     glBegin(GL_POINTS);
-    for(y=0;y < HEIGHT;y++)
+    for(y = 0; y < HEIGHT; y++)
     {
-      
-      getLightCoefficient(x,y);
-      //plot_pixel(x,y,x%256,y%256,(x+y)%256);
+      colorPixel(x,y);
     }
     glEnd();
     glFlush();
@@ -115,7 +113,7 @@ void draw_scene()
   printf("Done!\n"); fflush(stdout);
 }
 
-double getLightCoefficient(unsigned int x, unsigned int y)
+void colorPixel(unsigned int x, unsigned int y)
 {
   Intersection triIntersection;
   Intersection sphereIntersection;
@@ -130,6 +128,7 @@ double getLightCoefficient(unsigned int x, unsigned int y)
   //if we hit a triangle first
   if((triIntersection.time < sphereIntersection.time || sphereIntersection.time < 0) && triIntersection.time >= 0)
   {
+    printf("calc triangle...\n");
     double diffuseLight = calcDiffuse(primary_ray, triIntersection);
     double red = calcTriangleColor(triIntersection, 0);
     double green = calcTriangleColor(triIntersection, 1);
@@ -143,13 +142,13 @@ double getLightCoefficient(unsigned int x, unsigned int y)
     green *= 255;
     blue *= 255;
     
-    printf("PIXEL: (%f,%f,%f)\n",red,green,blue);
     plot_pixel(x,y,red,green,blue);
   }
   
   //if we hit a sphere first
   else if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0) && sphereIntersection.time >= 0)
   {
+    printf("calc sphere...\n");
     double diffuseLight = calcDiffuse(primary_ray, sphereIntersection);
     double red = getSphereColor(sphereIntersection, 0);
     double green = getSphereColor(sphereIntersection, 1);
@@ -319,7 +318,7 @@ Intersection check_triangles(Ray ray)
       
       if(s > 0.0005 && t > 0.0005 && (s + t) <= 1.000)
       {
-        if(intersectionTime > 0 && (intersectionTime < closestHit.time || closestHit.time == -1.0))
+        if(intersectionTime > 0.005 && (intersectionTime < closestHit.time || closestHit.time == -1.0))
         {
           closestHit.time = intersectionTime;
           closestHit.triangle = &triangles[i];
@@ -342,6 +341,7 @@ double calcDiffuse(Ray ray, Intersection intersection)
   double vectorToLightLength;
   double lightFactor = 0;
   
+  //calculate sphere or triangle normals
   if(intersection.sphere != NULL)
   {
     normal[0] = (intersection.position[0] - intersection.sphere->position[0]) / intersection.sphere->radius;
@@ -350,7 +350,6 @@ double calcDiffuse(Ray ray, Intersection intersection)
   }
   else if (intersection.triangle != NULL)
   {
-    printf("\nfirst call: calculate triangle lighting\n");
     double u[3];
     double v[3];
       
@@ -372,58 +371,51 @@ double calcDiffuse(Ray ray, Intersection intersection)
     normal[1] /= normalLength;
     normal[2] /= normalLength;
   }
+  
+  //iterate through lights and factor each source in
   for(int i = 0; i < num_lights; i++)
   {
-    vectorToLight[0] = lights[i].position[0] - intersection.position[0];
-    vectorToLight[1] = lights[i].position[1] - intersection.position[1];
-    vectorToLight[2] = lights[i].position[2] - intersection.position[2];
-    vectorToLightLength = pow(vectorToLight[0],2) + pow(vectorToLight[1],2) + pow(vectorToLight[2],2);
+    //generate vector to the light source
+    Ray vectorToLight;
+    //position is just the intersection
+    vectorToLight.position[0] = intersection.position[0];
+    vectorToLight.position[1] = intersection.position[1];
+    vectorToLight.position[2] = intersection.position[2];
+    //direction based on intersection and light poistion
+    vectorToLight.direction[0] = lights[i].position[0] - intersection.position[0];
+    vectorToLight.direction[1] = lights[i].position[1] - intersection.position[1];
+    vectorToLight.direction[2] = lights[i].position[2] - intersection.position[2];
+    vectorToLightLength = pow(vectorToLight.direction[0],2) + pow(vectorToLight.direction[1],2) + pow(vectorToLight.direction[2],2);
     vectorToLightLength = sqrt(vectorToLightLength);
-    vectorToLight[0] /= vectorToLightLength;
-    vectorToLight[1] /= vectorToLightLength;
-    vectorToLight[2] /= vectorToLightLength;
+    vectorToLight.direction[0] /= vectorToLightLength;
+    vectorToLight.direction[1] /= vectorToLightLength;
+    vectorToLight.direction[2] /= vectorToLightLength;
 
-    lightFactor += (normal[0] * vectorToLight[0]) + (normal[1] * vectorToLight[1]) + (normal[2] * vectorToLight[2]);
+    //check to see if there is a shadow
+    Intersection triangleShadow = check_triangles(vectorToLight);
+    Intersection sphereShadow = check_spheres(vectorToLight);
+
+    printf("\nCalculating shadows:\n");
+    if(triangleShadow.time > 0.005 || sphereShadow.time > 0.005)
+    {
+      lightFactor += 0;
+      printf("trinalgeShadow time: %f\n",triangleShadow.time);
+      printf("sphereShadow time: %f\n",sphereShadow.time);
+    }
+    else
+    {
+      printf("trinalgeShadow time: %f\n",triangleShadow.time);
+      printf("sphereShadow time: %f\n",sphereShadow.time);
+      lightFactor += (normal[0] * vectorToLight.direction[0]) + (normal[1] * vectorToLight.direction[1]) + (normal[2] * vectorToLight.direction[2]);
+    }
   }
+  lightFactor/=num_lights;
   printf("lightfactor = %f\n",lightFactor);
   return lightFactor;
 }
 
-bool lookForShadow(double *intersectionPoint)
-{
-  bool hitObject = false;
-  Intersection triIntersection;
-  Intersection sphereIntersection;
-  
-  triIntersection.time = -1.0;
-  sphereIntersection.time = -1.0;
-  //iterate through lights, checking for intersection
-  for(int i = 0; i < num_lights; i ++)
-  {
-    Ray ray;
-    
-    ray.position[0] = intersectionPoint[0];
-    ray.position[1] = intersectionPoint[1];
-    ray.position[2] = intersectionPoint[2];
-    
-    ray.direction[0] = lights[i].position[0] - intersectionPoint[0];
-    ray.direction[1] = lights[i].position[1] - intersectionPoint[1];
-    ray.direction[2] = lights[i].position[2] - intersectionPoint[2];
-    
-    triIntersection = check_triangles(ray);
-    sphereIntersection = check_spheres(ray);
-    
-    if(triIntersection.time > 0 || sphereIntersection.time > 0)
-    {
-      hitObject = true;
-    }
-  }
-  return hitObject;
-}
-
 double calcTriangleColor(Intersection intersection, int colorIndex)
 {
-  printf("calculatring triangle color...\n");
   double d1[3];
   double d2[3];
   double d3[3];
@@ -463,7 +455,7 @@ double calcTriangleColor(Intersection intersection, int colorIndex)
   d1Factor = d1length / (d1length + d2length + d3length);
   d2Factor = d2length / (d1length + d2length + d3length);
   d3Factor = d3length / (d1length + d2length + d3length);
-  printf("respective factors: (%f,%f,%f)\n",d1Factor,d2Factor,d3Factor);
+
   color = (d1Factor * intersection.triangle->v[0].color_diffuse[colorIndex]) + (d2Factor * intersection.triangle->v[1].color_diffuse[colorIndex]) +  (d3Factor * intersection.triangle->v[2].color_diffuse[colorIndex]);
   
   return color;
