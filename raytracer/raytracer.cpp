@@ -128,7 +128,6 @@ void colorPixel(unsigned int x, unsigned int y)
   //if we hit a triangle first
   if((triIntersection.time < sphereIntersection.time || sphereIntersection.time < 0) && triIntersection.time >= 0)
   {
-    printf("calc triangle...\n");
     double diffuseLight = calcDiffuse(primary_ray, triIntersection);
     double red = calcTriangleColor(triIntersection, 0);
     double green = calcTriangleColor(triIntersection, 1);
@@ -148,15 +147,14 @@ void colorPixel(unsigned int x, unsigned int y)
   //if we hit a sphere first
   else if((sphereIntersection.time < triIntersection.time || triIntersection.time < 0) && sphereIntersection.time >= 0)
   {
-    printf("calc sphere...\n");
     double diffuseLight = calcDiffuse(primary_ray, sphereIntersection);
     double red = getSphereColor(sphereIntersection, 0);
     double green = getSphereColor(sphereIntersection, 1);
     double blue = getSphereColor(sphereIntersection, 2);
     
-    red *= (0.7 * diffuseLight + 0.3);
-    green *= (0.7 * diffuseLight + 0.3);
-    blue *= (0.7 * diffuseLight + 0.3);
+    red *= (0.6 * diffuseLight + 0.4);
+    green *= (0.6 * diffuseLight + 0.4);
+    blue *= (0.6 * diffuseLight + 0.4);
                                  
     red *= 255;
     green *= 255;
@@ -395,22 +393,18 @@ double calcDiffuse(Ray ray, Intersection intersection)
     Intersection triangleShadow = check_triangles(vectorToLight);
     Intersection sphereShadow = check_spheres(vectorToLight);
 
-    printf("\nCalculating shadows:\n");
-    if(triangleShadow.time > 0.005 || sphereShadow.time > 0.005)
+    if(!((triangleShadow.time > 0.005 || sphereShadow.time > 0.005) && (triangleShadow.time < vectorToLightLength && sphereShadow.time < vectorToLightLength)))
     {
-      lightFactor += 0;
-      printf("trinalgeShadow time: %f\n",triangleShadow.time);
-      printf("sphereShadow time: %f\n",sphereShadow.time);
-    }
-    else
-    {
-      printf("trinalgeShadow time: %f\n",triangleShadow.time);
-      printf("sphereShadow time: %f\n",sphereShadow.time);
       lightFactor += (normal[0] * vectorToLight.direction[0]) + (normal[1] * vectorToLight.direction[1]) + (normal[2] * vectorToLight.direction[2]);
+      //hack to fix bug with negative dot product
+      if(lightFactor < 0.005)
+      {
+        lightFactor -= (normal[0] * vectorToLight.direction[0]) + (normal[1] * vectorToLight.direction[1]) + (normal[2] * vectorToLight.direction[2]);;
+      }
     }
   }
   lightFactor/=num_lights;
-  printf("lightfactor = %f\n",lightFactor);
+
   return lightFactor;
 }
 
